@@ -66,7 +66,33 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.customId === "event_menu") {
     const value = interaction.values[0];
 
-    await interaction.reply(`✅ Has seleccionado el evento: **${value}**`);
+    const eventInfo = {
+  svs_preparation_phase: "📊 Preparación para SvS: organización de rallys y asignación de roles.",
+  svs_battle: "⚔️ Batalla SvS: guerra entre reinos, máxima coordinación requerida.",
+  sunfire_castle_normal: "🏰 Sunfire Castle (Normal): evento de control del castillo.",
+  sunfire_castle_svs: "🔥 Sunfire Castle (SvS): versión de SvS con recompensa especial.",
+  king_of_icefield_koi: "❄️ King of Icefield: control del mapa de hielo.",
+  alliance_showdown: "⚔️ Alliance Showdown: enfrentamiento entre alianzas.",
+  alliance_mobilization: "📢 Movilización de alianza: preparación de tropas.",
+  foundry_battle: "⚙️ Foundry Battle: combate por puntos de alianza.",
+  frostfire_mine: "⛏️ Frostfire Mine: minería PvP por recursos.",
+  canyon_clash: "🏹 Canyon Clash: combate táctico por equipos.",
+  crazy_joe: "🤪 Crazy Joe: defensa contra oleadas de enemigos.",
+  fortress_battle: "🏯 Fortress Battle: conquista de fortalezas.",
+  stronghold_battle: "🛡️ Stronghold Battle: control de puntos estratégicos.",
+  bear_trap: "🐻 Bear Trap: caza cooperativa de jefes.",
+  daily_messages: "💬 Mensajes diarios de organización.",
+  alliance_gifts: "🎁 Gestión de regalos de alianza.",
+  alliance_tech_donations: "🔬 Donaciones de tecnología de alianza.",
+  alliance_help: "🤝 Ayuda entre miembros de la alianza.",
+  rally_organization: "📣 Organización de rallys.",
+  event_registration: "📝 Registro de eventos.",
+  battle_signups: "⚔️ Inscripción a batallas.",
+  reward_distribution: "🏆 Distribución de recompensas.",
+  alliance_championship: "👑 Campeonato de alianza."
+};
+
+await interaction.reply(eventInfo[value] || "Evento no definido.");
   }
 });
 
