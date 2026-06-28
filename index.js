@@ -1,5 +1,6 @@
 const {
   Client,
+  const eventRegistrations = {};
   GatewayIntentBits,
   ActionRowBuilder,
   StringSelectMenuBuilder
@@ -17,10 +18,20 @@ client.once("ready", () => {
   console.log(`Bot conectado como ${client.user.tag}`);
 });
 
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+if (message.content.startsWith("!list ")) {
 
-  if (message.content === "!event") {
+  const event = message.content.split(" ")[1];
+
+  const list = eventRegistrations[event];
+
+  if (!list || list.length === 0) {
+    return message.reply("No hay jugadores registrados en este evento.");
+  }
+
+  const mentions = list.map(id => `<@${id}>`).join("\n");
+
+  message.reply(`📋 Jugadores en **${event}**:\n\n${mentions}`);
+}
 
     const menu = new StringSelectMenuBuilder()
       .setCustomId("event_menu")
@@ -61,7 +72,31 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+
   if (!interaction.isStringSelectMenu()) return;
+
+  if (interaction.customId === "event_menu") {
+
+    const event = interaction.values[0];
+
+    // Crear array si no existe
+    if (!eventRegistrations[event]) {
+      eventRegistrations[event] = [];
+    }
+
+    // Si usuario no está registrado → lo añadimos
+    if (!eventRegistrations[event].includes(interaction.user.id)) {
+      eventRegistrations[event].push(interaction.user.id);
+    }
+
+    const count = eventRegistrations[event].length;
+
+    await interaction.reply({
+      content: `✅ Te has registrado en **${event}**\n👥 Total inscritos: **${count}**`,
+      ephemeral: true
+    });
+  }
+});
 
   if (interaction.customId === "event_menu") {
     const value = interaction.values[0];
