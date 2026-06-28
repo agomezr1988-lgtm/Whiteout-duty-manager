@@ -1,3 +1,12 @@
+const weeklyCalendar = {
+  monday: [],
+  tuesday: [],
+  wednesday: [],
+  thursday: [],
+  friday: [],
+  saturday: [],
+  sunday: []
+};
 const {
   Client,
   const eventRegistrations = {};
@@ -12,6 +21,51 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
   ]
+});
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  // COMANDO EVENTO
+  if (message.content === "!event") {
+    const menu = require("./tu_menu_o_lo_que_tengas"); // ignorar si ya lo tienes
+  }
+
+  // CALENDARIO - AÑADIR
+  if (message.content.startsWith("!calendar add")) {
+
+    const args = message.content.split(" ");
+    const day = args[2];
+    const event = args.slice(3).join(" ");
+
+    if (!weeklyCalendar[day]) {
+      return message.reply("Día inválido. Usa monday, tuesday, etc.");
+    }
+
+    weeklyCalendar[day].push(event);
+
+    return message.reply(`📅 Evento añadido a **${day}**: ${event}`);
+  }
+
+  // CALENDARIO - VER
+  if (message.content === "!calendar") {
+
+    let text = "📅 **Calendario Semanal de la Alianza**\n\n";
+
+    for (const day in weeklyCalendar) {
+      text += `**${day.toUpperCase()}**\n`;
+
+      if (weeklyCalendar[day].length === 0) {
+        text += "- Sin eventos\n\n";
+      } else {
+        weeklyCalendar[day].forEach(e => {
+          text += `- ${e}\n`;
+        });
+        text += "\n";
+      }
+    }
+
+    return message.reply(text);
+  }
 });
 
 client.once("ready", () => {
