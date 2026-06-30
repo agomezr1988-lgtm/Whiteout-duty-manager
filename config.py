@@ -1,18 +1,48 @@
 import os
 
-# Token (aunque lo lees en main, lo dejamos centralizado por orden)
+# ======================================================
+# DISCORD
+# ======================================================
+
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+COMMAND_PREFIX = os.getenv("COMMAND_PREFIX", "!")
 
-# Prefijo de comandos (si luego migras a slash commands, esto queda opcional)
-COMMAND_PREFIX = "!"
+# ======================================================
+# GUILD
+# ======================================================
 
-# IDs opcionales (puedes usarlos para debug o servidores específicos)
-GUILD_ID = os.getenv("GUILD_ID")
+GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
-# Config de roles base (R4 / R5 management)
-ROLE_R4_NAME = "R4"
-ROLE_R5_NAME = "R5"
+# ======================================================
+# CANALES
+# ======================================================
 
-# Zona horaria (importante para eventos semanales)
-TIMEZONE = "Europe/Madrid"
+# Canal donde se enviarán automáticamente los avisos
+ANNOUNCEMENT_CHANNEL_ID = int(
+    os.getenv("ANNOUNCEMENT_CHANNEL_ID", "0")
+)
 
+# ======================================================
+# ROLES
+# ======================================================
+
+ROLE_R4_NAME = os.getenv("ROLE_R4_NAME", "R4")
+ROLE_R5_NAME = os.getenv("ROLE_R5_NAME", "R5")
+
+# ======================================================
+# HORARIO
+# ======================================================
+
+TIMEZONE = os.getenv("TIMEZONE", "Europe/Madrid")
+
+# ======================================================
+# RECORDATORIOS
+# ======================================================
+
+DEFAULT_REMINDERS = [60, 30, 15, 5]
+
+# ======================================================
+# DEBUG
+# ======================================================
+
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
