@@ -1,19 +1,23 @@
+import logging
+
 import discord
 from discord.ext import commands, tasks
+
+from config import ANNOUNCEMENT_CHANNEL_ID
 from utils.time_utils import now_utc, parse_time_utc
+
+logger = logging.getLogger(__name__)
 
 
 class SchedulerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.sent_notifications = set()
         self.check_events.start()
 
     def cog_unload(self):
         self.check_events.cancel()
 
-    # -------------------------
-    # LOOP UTC GLOBAL
-    # -------------------------
     @tasks.loop(minutes=1)
     async def check_events(self):
         now = now_utc()
@@ -22,25 +26,54 @@ class SchedulerCog(commands.Cog):
         current_hour = now.hour
         current_minute = now.minute
 
-        events = self.bot.event_manager.get_today_events(weekday)
+        try:
+            events = self.bot.event_manager.get_today_events(weekday)
 
-        for event in events:
-            if not event.active:
-                continue
+            for event in events:
 
-            event_hour, event_minute = parse_time_utc(event.time)
+                if not event.active:
+                    continue
 
-            # Evento exacto
-            if current_hour == event_hour and current_minute == event_minute:
-                await self.notify(event, "🚨 Evento comienza ahora (UTC)")
+                event_hour, event_minute = parse_time_utc(event.time)
 
-            # Recordatorios
-            await self.check_reminders(event, now, event_hour, event_minute)
+                # Evento exacto
+                if (
+                    current_hour == event_hour
+                    and current_minute == event_minute
+                ):
 
-    # -------------------------
-    # RECORDATORIOS OPTIMIZADOS
-    # -------------------------
-    async def check_reminders(self, event, now, event_hour, event_minute):
+                    key = f"{event.id}-start-{now.strftime('%Y%m%d%H%M')}"
+
+                    if key not in self.sent_notifications:
+                        self.sent_notifications.add(key)
+
+                        await self.notify(
+                            event,
+                            "🚨 **El evento comienza ahora.**"
+                        )
+
+                # Recordatorios
+                await self.check_reminders(
+                    event,
+                    now,
+                    event_hour,
+                    event_minute
+                )
+
+        except Exception:
+            logger.exception("Error en Scheduler")
+
+    @check_events.before_loop
+    async def before_check_events(self):
+        await self.bot.wait_until_ready()
+
+    async def check_reminders(
+        self,
+        event,
+        now,
+        event_hour,
+        event_minute
+    ):
 
         event_time = now.replace(
             hour=event_hour,
@@ -51,51 +84,77 @@ class SchedulerCog(commands.Cog):
 
         diff = int((event_time - now).total_seconds() / 60)
 
-        if diff in event.reminders:
-            key = f"{event.id}-{diff}-{now.date()}"
+        if diff < 0:
+            return
 
-            if event.last_notified == key:
+        if diff in event.reminders:
+
+            key = f"{event.id}-{diff}-{now.strftime('%Y%m%d')}"
+
+            if key in self.sent_notifications:
                 return
+
+            self.sent_notifications.add(key)
 
             event.last_notified = key
 
+            self.bot.event_manager.save()
+
             await self.notify(
                 event,
-                f"⏳ Recordatorio UTC: evento en {diff} minutos"
+                f"⏳ **Recordatorio:** quedan **{diff} minutos**."
             )
 
-    # -------------------------
-    # NOTIFICACIÓN
-    # -------------------------
     async def notify(self, event, message):
+
         channel = self.get_channel()
-        if not channel:
+
+        if channel is None:
+            logger.warning("No se encontró el canal de anuncios.")
             return
 
         embed = discord.Embed(
             title="📅 Evento de Alianza",
-            description=f"**{event.name}**\n\n{message}",
             color=discord.Color.orange()
         )
 
+        embed.add_field(
+            name="Evento",
+            value=event.name,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Hora (UTC)",
+            value=event.time,
+            inline=True
+        )
+
+        embed.add_field(
+            name="Mensaje",
+            value=message,
+            inline=False
+        )
+
         if event.assigned_roles:
+
             embed.add_field(
-                name="👥 Responsables",
-                value=", ".join(event.assigned_roles),
+                name="Responsables",
+                value="\n".join(event.assigned_roles),
                 inline=False
             )
 
-        await channel.send(embed=embed)
+        await channel.send(
+            embed=embed,
+            allowed_mentions=discord.AllowedMentions.none()
+        )
 
-    # -------------------------
-    # CANAL AUTOMÁTICO
-    # -------------------------
     def get_channel(self):
-        for guild in self.bot.guilds:
-            for channel in guild.text_channels:
-                if channel.permissions_for(guild.me).send_messages:
-                    return channel
-        return None
+
+        if not ANNOUNCEMENT_CHANNEL_ID:
+            return None
+
+        return self.bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
 
 
 async def setup(bot):
