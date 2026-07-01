@@ -59,6 +59,7 @@ class WhiteoutBot(commands.Bot):
             "cogs.events",
             "cogs.scheduler",
             "cogs.availability",
+            "cogs.dashboard",
         ]
         for cog in cogs:
 
