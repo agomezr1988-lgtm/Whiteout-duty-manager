@@ -25,7 +25,8 @@ def parse_date_ddmmyyyy(text: str) -> str:
     Convierte 'DD/MM' o 'DD/MM/AAAA' a formato ISO 'YYYY-MM-DD'.
 
     Si no se indica año, se asume el año actual; si esa fecha ya
-    pasó esta semana/año, se asume el año siguiente.
+    pasó esta semana/año, se asume el año siguiente (para que
+    '05/01' en diciembre apunte al próximo enero, no al pasado).
     """
 
     parts = text.strip().split("/")
