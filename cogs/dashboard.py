@@ -2,15 +2,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-DAYS = [
-    "Lunes",
-    "Martes",
-    "Miércoles",
-    "Jueves",
-    "Viernes",
-    "Sábado",
-    "Domingo",
-]
+
+def day_label(event) -> str:
+    DAYS = [
+        "Lunes", "Martes", "Miércoles", "Jueves",
+        "Viernes", "Sábado", "Domingo",
+    ]
+    if event.weekday is None:
+        return "Fecha variable"
+    return DAYS[event.weekday]
 
 
 class DashboardView(discord.ui.View):
@@ -53,7 +53,7 @@ class DashboardView(discord.ui.View):
                 name=event.name,
                 value=(
                     f"🆔 `{event.id}`\n"
-                    f"📅 {DAYS[event.weekday]}\n"
+                    f"📅 {day_label(event)}\n"
                     f"🕒 {event.time} UTC\n"
                     f"{estado}"
                 ),
