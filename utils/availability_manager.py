@@ -55,11 +55,12 @@ class AvailabilityManager:
         event_id: str,
         user_id: str,
         user_name: str,
-        role: str = "",
+        rank: str = "",
         date: Optional[str] = None,
+        task: Optional[str] = None,
     ):
         """Apunta a un usuario. Si ya estaba apuntado (mismo evento,
-        usuario y tipo de fecha), actualiza la entrada existente."""
+        usuario, fecha y tarea), actualiza la entrada existente."""
 
         self.entries = [
             a for a in self.entries
@@ -67,6 +68,7 @@ class AvailabilityManager:
                 a.event_id == event_id
                 and a.user_id == user_id
                 and a.date == date
+                and a.task == task
             )
         ]
 
@@ -75,8 +77,9 @@ class AvailabilityManager:
                 event_id=event_id,
                 user_id=user_id,
                 user_name=user_name,
-                role=role,
+                rank=rank,
                 date=date,
+                task=task,
             )
         )
 
@@ -87,6 +90,7 @@ class AvailabilityManager:
         event_id: str,
         user_id: str,
         date: Optional[str] = None,
+        task: Optional[str] = None,
     ) -> bool:
         """Quita a un usuario. Devuelve True si habÃ­a algo que quitar."""
 
@@ -98,6 +102,7 @@ class AvailabilityManager:
                 a.event_id == event_id
                 and a.user_id == user_id
                 and a.date == date
+                and a.task == task
             )
         ]
 
@@ -117,7 +122,7 @@ class AvailabilityManager:
         date: Optional[str] = None,
     ) -> List[Availability]:
         """Devuelve la disponibilidad recurrente de un evento, mÃ¡s la
-        de una fecha concreta si se indica."""
+        de una fecha concreta si se indica (incluye todas las tareas)."""
 
         result = [
             a for a in self.entries
