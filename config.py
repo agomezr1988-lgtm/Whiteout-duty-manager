@@ -21,6 +21,8 @@ GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 ANNOUNCEMENT_CHANNEL_ID = int(
     os.getenv("ANNOUNCEMENT_CHANNEL_ID", "0")
 )
+
+# Canal donde se publica y actualiza el tablón de calendario
 CALENDAR_CHANNEL_ID = int(
     os.getenv("CALENDAR_CHANNEL_ID", "0")
 )
