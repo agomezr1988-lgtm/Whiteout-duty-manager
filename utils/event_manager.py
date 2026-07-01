@@ -56,7 +56,11 @@ class EventManager:
     def get_all_events(self) -> List[Event]:
         return sorted(
             self.events.values(),
-            key=lambda e: (e.weekday, e.time)
+            key=lambda e: (
+                e.weekday is None,          # False (0) primero = fijos; True (1) = variables al final
+                e.weekday if e.weekday is not None else 0,
+                e.time,
+            )
         )
 
     def get_today_events(self, weekday: int) -> List[Event]:
