@@ -58,8 +58,8 @@ class WhiteoutBot(commands.Bot):
             "cogs.admin",
             "cogs.events",
             "cogs.scheduler",
+            "cogs.availability",
         ]
-
         for cog in cogs:
 
             try:
@@ -69,9 +69,17 @@ class WhiteoutBot(commands.Bot):
             except Exception:
                 logger.exception(f"No se pudo cargar {cog}")
 
-        # Sincroniza Slash Commands (para el futuro)
+        # Sincroniza Slash Commands
         try:
-            synced = await self.tree.sync()
+            if config.GUILD_ID:
+                # Sincronización a un servidor concreto: aparece al instante
+                guild = discord.Object(id=config.GUILD_ID)
+                self.tree.copy_global_to(guild=guild)
+                synced = await self.tree.sync(guild=guild)
+            else:
+                # Sincronización global: puede tardar hasta 1 hora en aparecer
+                synced = await self.tree.sync()
+
             logger.info(f"Slash Commands sincronizados: {len(synced)}")
         except Exception:
             logger.exception("Error sincronizando Slash Commands")
