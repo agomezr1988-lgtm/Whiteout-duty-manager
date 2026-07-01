@@ -96,27 +96,37 @@ class EventsCog(commands.Cog):
                 "📭 No hay eventos registrados."
             )
 
-        embed = discord.Embed(
-            title="📅 Eventos configurados",
-            color=discord.Color.blurple()
-        )
+        # Un embed solo admite 25 campos: con muchos eventos hay que
+        # listarlos como texto en vez de un campo por evento.
+        lines = []
 
         for event in events:
-
-            estado = "🟢 Activo" if event.active else "🔴 Inactivo"
-
-            embed.add_field(
-                name=event.name,
-                value=(
-                    f"🆔 `{event.id}`\n"
-                    f"📅 {day_label(event)}\n"
-                    f"🕒 {event.time} UTC\n"
-                    f"{estado}"
-                ),
-                inline=False
+            estado = "🟢" if event.active else "🔴"
+            lines.append(
+                f"{estado} **{event.name}** — 🆔 `{event.id}` — "
+                f"{day_label(event)} {event.time} UTC"
             )
 
-        await ctx.send(embed=embed)
+        chunks = []
+        current = ""
+        for line in lines:
+            if len(current) + len(line) + 1 > 4000:
+                chunks.append(current)
+                current = ""
+            current += line + "\n"
+        if current:
+            chunks.append(current)
+
+        embeds = []
+        for i, chunk in enumerate(chunks):
+            embed = discord.Embed(
+                title="📅 Eventos configurados" if i == 0 else "\u200b",
+                description=chunk,
+                color=discord.Color.blurple()
+            )
+            embeds.append(embed)
+
+        await ctx.send(embeds=embeds[:10])
 
     # --------------------------------------------------
     # Eventos de hoy
