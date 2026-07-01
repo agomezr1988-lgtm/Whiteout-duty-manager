@@ -16,6 +16,13 @@ DAYS = [
 ]
 
 
+def day_label(event) -> str:
+    """Devuelve el nombre del día, o 'Fecha variable' si no tiene uno fijo."""
+    if event.weekday is None:
+        return "📌 Fecha variable"
+    return DAYS[event.weekday]
+
+
 class EventsCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -30,16 +37,26 @@ class EventsCog(commands.Cog):
         self,
         ctx,
         event_id: str,
-        weekday: int,
+        weekday: str,
         time: str,
         *,
         name: str
     ):
 
-        if not 0 <= weekday <= 6:
-            return await ctx.send(
-                "❌ El día debe estar entre 0 (Lunes) y 6 (Domingo)."
-            )
+        if weekday.lower() in ("variable", "var", "-", "none"):
+            weekday_value = None
+        else:
+            try:
+                weekday_value = int(weekday)
+            except ValueError:
+                return await ctx.send(
+                    "❌ El día debe ser un número (0=Lunes...6=Domingo) o la palabra `variable`."
+                )
+
+            if not 0 <= weekday_value <= 6:
+                return await ctx.send(
+                    "❌ El día debe estar entre 0 (Lunes) y 6 (Domingo), o `variable`."
+                )
 
         try:
             parse_time_utc(time)
@@ -55,7 +72,7 @@ class EventsCog(commands.Cog):
             id=event_id,
             name=name,
             description="Creado desde Discord",
-            weekday=weekday,
+            weekday=weekday_value,
             time=time,
         )
 
@@ -92,7 +109,7 @@ class EventsCog(commands.Cog):
                 name=event.name,
                 value=(
                     f"🆔 `{event.id}`\n"
-                    f"📅 {DAYS[event.weekday]}\n"
+                    f"📅 {day_label(event)}\n"
                     f"🕒 {event.time} UTC\n"
                     f"{estado}"
                 ),
