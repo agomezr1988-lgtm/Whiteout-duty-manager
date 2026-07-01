@@ -21,6 +21,12 @@ DAYS = [
 ]
 
 
+def day_label(event) -> str:
+    if event.weekday is None:
+        return "Fecha variable"
+    return DAYS[event.weekday]
+
+
 class AvailabilityCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -43,7 +49,7 @@ class AvailabilityCog(commands.Cog):
             if not event.active:
                 continue
 
-            label = f"{event.name} ({DAYS[event.weekday]} {event.time} UTC)"
+            label = f"{event.name} ({day_label(event)} {event.time} UTC)"
 
             if current.lower() in label.lower() or current.lower() in event.id.lower():
                 choices.append(
@@ -51,6 +57,30 @@ class AvailabilityCog(commands.Cog):
                 )
 
         return choices[:25]
+
+    # ==================================================
+    # AUTOCOMPLETADO DE TAREA (depende del evento ya elegido)
+    # ==================================================
+    async def tarea_autocomplete(
+        self,
+        interaction: discord.Interaction,
+        current: str,
+    ):
+        evento_id = interaction.namespace.evento
+
+        if not evento_id:
+            return []
+
+        event = self.bot.event_manager.get_event(evento_id)
+
+        if event is None or not event.tasks:
+            return []
+
+        return [
+            app_commands.Choice(name=t[:100], value=t)
+            for t in event.tasks
+            if current.lower() in t.lower()
+        ][:25]
 
     # ==================================================
     # /disponible
@@ -62,16 +92,18 @@ class AvailabilityCog(commands.Cog):
     @app_commands.describe(
         evento="Elige el evento de la lista",
         fecha=(
-            "Opcional: DD/MM o DD/MM/AAAA para una fecha concreta. "
-            "Si lo dejas vacío, vale todas las semanas."
-        )
+            "DD/MM o DD/MM/AAAA para una fecha concreta. Obligatorio en "
+            "eventos de fecha variable; opcional en el resto (vacío = todas las semanas)."
+        ),
+        tarea="Opcional: la tarea concreta a la que te apuntas dentro del evento",
     )
-    @app_commands.autocomplete(evento=event_autocomplete)
+    @app_commands.autocomplete(evento=event_autocomplete, tarea=tarea_autocomplete)
     async def disponible(
         self,
         interaction: discord.Interaction,
         evento: str,
         fecha: str = None,
+        tarea: str = None,
     ):
 
         event = self.bot.event_manager.get_event(evento)
@@ -79,6 +111,15 @@ class AvailabilityCog(commands.Cog):
         if event is None:
             return await interaction.response.send_message(
                 "❌ Evento no encontrado. Selecciónalo de la lista que te sugiere Discord.",
+                ephemeral=True
+            )
+
+        # Los eventos de fecha variable no tienen recurrencia semanal:
+        # hace falta indicar una fecha sí o sí.
+        if event.weekday is None and not fecha:
+            return await interaction.response.send_message(
+                f"❌ **{event.name}** es un evento de fecha variable. "
+                "Indica una fecha con el parámetro `fecha` (DD/MM o DD/MM/AAAA).",
                 ephemeral=True
             )
 
@@ -92,20 +133,29 @@ class AvailabilityCog(commands.Cog):
                     f"❌ {e}", ephemeral=True
                 )
 
-        role = self._get_role(interaction.user)
+        if tarea and event.tasks and tarea not in event.tasks:
+            return await interaction.response.send_message(
+                f"❌ Esa tarea no existe en **{event.name}**. "
+                f"Elígela de la lista sugerida.",
+                ephemeral=True
+            )
+
+        rank = self._get_rank(interaction.user)
 
         self.availability_manager.set_available(
             event_id=event.id,
             user_id=str(interaction.user.id),
             user_name=interaction.user.display_name,
-            role=role,
+            rank=rank,
             date=date_iso,
+            task=tarea,
         )
 
-        cuando = f"el {date_iso}" if date_iso else f"todos los {DAYS[event.weekday]}"
+        cuando = f"el {date_iso}" if date_iso else f"todos los {day_label(event)}"
+        tarea_txt = f" — tarea: **{tarea}**" if tarea else ""
 
         await interaction.response.send_message(
-            f"✅ Apuntado a **{event.name}** ({cuando}).",
+            f"✅ Apuntado a **{event.name}** ({cuando}){tarea_txt}.",
             ephemeral=True
         )
 
@@ -120,14 +170,16 @@ class AvailabilityCog(commands.Cog):
     )
     @app_commands.describe(
         evento="Elige el evento de la lista",
-        fecha="Indícala solo si te apuntaste a una fecha concreta (DD/MM o DD/MM/AAAA)"
+        fecha="Indícala solo si te apuntaste a una fecha concreta (DD/MM o DD/MM/AAAA)",
+        tarea="Indícala solo si te apuntaste a una tarea concreta",
     )
-    @app_commands.autocomplete(evento=event_autocomplete)
+    @app_commands.autocomplete(evento=event_autocomplete, tarea=tarea_autocomplete)
     async def no_disponible(
         self,
         interaction: discord.Interaction,
         evento: str,
         fecha: str = None,
+        tarea: str = None,
     ):
 
         event = self.bot.event_manager.get_event(evento)
@@ -151,6 +203,7 @@ class AvailabilityCog(commands.Cog):
             event_id=event.id,
             user_id=str(interaction.user.id),
             date=date_iso,
+            task=tarea,
         )
 
         if removed:
@@ -161,7 +214,7 @@ class AvailabilityCog(commands.Cog):
             await self.refresh_board()
         else:
             await interaction.response.send_message(
-                "⚠️ No estabas apuntado ahí.",
+                "⚠️ No estabas apuntado ahí (revisa si pusiste fecha/tarea igual que al apuntarte).",
                 ephemeral=True
             )
 
@@ -194,6 +247,7 @@ class AvailabilityCog(commands.Cog):
 
         events = self.bot.event_manager.get_all_events()
 
+        # --- Eventos con día fijo, agrupados por día de la semana ---
         for weekday in range(7):
 
             day_events = [
@@ -208,22 +262,7 @@ class AvailabilityCog(commands.Cog):
             lines = []
 
             for event in day_events:
-
-                signups = self.availability_manager.get_for_event(
-                    event.id, date=fecha_dia
-                )
-
-                if signups:
-                    nombres = ", ".join(
-                        a.user_name + (f" ({a.role})" if a.role else "")
-                        for a in signups
-                    )
-                else:
-                    nombres = "Sin apuntados"
-
-                lines.append(
-                    f"**{event.name}** ({event.time} UTC)\n👥 {nombres}"
-                )
+                lines.append(self._format_event_signups(event, fecha_dia))
 
             embed.add_field(
                 name=f"{DAYS[weekday]} {week_dates[weekday].strftime('%d/%m')}",
@@ -231,10 +270,68 @@ class AvailabilityCog(commands.Cog):
                 inline=False
             )
 
+        # --- Eventos de fecha variable con apuntados esta semana ---
+        variable_events = [e for e in events if e.weekday is None and e.active]
+        variable_lines = []
+
+        for event in variable_events:
+            signups = self.availability_manager.get_for_event(event.id)
+            entries_with_date = [a for a in signups if a.date]
+
+            if not entries_with_date:
+                continue
+
+            por_fecha = {}
+            for a in entries_with_date:
+                por_fecha.setdefault(a.date, []).append(a)
+
+            for fecha, entries in sorted(por_fecha.items()):
+                nombres = ", ".join(
+                    a.user_name + (f" ({a.rank})" if a.rank else "") +
+                    (f" [{a.task}]" if a.task else "")
+                    for a in entries
+                )
+                variable_lines.append(f"**{event.name}** — {fecha}\n👥 {nombres}")
+
+        if variable_lines:
+            embed.add_field(
+                name="📌 Eventos de fecha variable",
+                value="\n\n".join(variable_lines),
+                inline=False
+            )
+
         if not embed.fields:
             embed.description += "\n\n📭 No hay eventos activos configurados."
 
         return embed
+
+    def _format_event_signups(self, event, fecha_dia: str) -> str:
+        signups = self.availability_manager.get_for_event(event.id, date=fecha_dia)
+
+        if not event.tasks:
+            if signups:
+                nombres = ", ".join(
+                    a.user_name + (f" ({a.rank})" if a.rank else "")
+                    for a in signups
+                )
+            else:
+                nombres = "Sin apuntados"
+            return f"**{event.name}** ({event.time} UTC)\n👥 {nombres}"
+
+        # Evento con tareas: agrupar por tarea
+        lines = [f"**{event.name}** ({event.time} UTC)"]
+
+        sin_tarea = [a for a in signups if not a.task]
+        if sin_tarea:
+            nombres = ", ".join(a.user_name for a in sin_tarea)
+            lines.append(f"👥 General: {nombres}")
+
+        for tarea in event.tasks:
+            asignados = [a for a in signups if a.task == tarea]
+            nombres = ", ".join(a.user_name for a in asignados) if asignados else "—"
+            lines.append(f"▫️ {tarea}: {nombres}")
+
+        return "\n".join(lines)
 
     # ==================================================
     # TABLÓN QUE SE AUTOACTUALIZA
@@ -269,9 +366,9 @@ class AvailabilityCog(commands.Cog):
         self.board_message_id = message.id
 
     # ==================================================
-    # UTILIDAD: rol R4/R5 del usuario
+    # UTILIDAD: rango R4/R5 del usuario
     # ==================================================
-    def _get_role(self, member) -> str:
+    def _get_rank(self, member) -> str:
         role_names = [r.name for r in getattr(member, "roles", [])]
 
         if config.ROLE_R5_NAME in role_names:
