@@ -10,7 +10,7 @@ from utils.event_manager import EventManager
 from utils.availability_manager import AvailabilityManager
 
 # ======================================================
-# CARGAR .ENV
+# LOAD .ENV
 # ======================================================
 
 load_dotenv()
@@ -41,12 +41,10 @@ intents.members = True
 # ======================================================
 
 class WhiteoutBot(commands.Bot):
-    """
-    Bot multi-servidor: cada servidor (guild) tiene sus propios
-    eventos, disponibilidad, ciclo de SvS y configuración (nombres
-    de roles R4/R5, canales). Los datos se guardan por separado en
-    data/guilds/<guild_id>/.
-    """
+    # Multi-server bot: each server (guild) has its own events,
+    # availability, SvS cycle, and configuration (R4/R5 role names,
+    # channels). Data is stored separately under
+    # data/guilds/<guild_id>/.
 
     def __init__(self):
 
@@ -56,23 +54,23 @@ class WhiteoutBot(commands.Bot):
             help_command=None
         )
 
-        # Un EventManager y un AvailabilityManager por servidor,
-        # creados la primera vez que se necesitan (bajo demanda).
+        # One EventManager and one AvailabilityManager per server,
+        # created on demand the first time they're needed.
         self._event_managers = {}
         self._availability_managers = {}
 
     # --------------------------------------------------
-    # Acceso a los gestores por servidor
+    # Access to the per-server managers
     # --------------------------------------------------
     def get_event_manager(self, guild_id: int) -> EventManager:
         if guild_id not in self._event_managers:
             manager = EventManager(guild_id)
 
-            # Auto-carga de eventos de referencia para este servidor
+            # Auto-load reference events for this server
             from utils.seed_loader import load_seed_events
-            creados, _ = load_seed_events(manager)
-            if creados:
-                logger.info(f"[{guild_id}] Eventos cargados automáticamente: {len(creados)}")
+            created, _ = load_seed_events(manager)
+            if created:
+                logger.info(f"[{guild_id}] Events loaded automatically: {len(created)}")
 
             self._event_managers[guild_id] = manager
 
@@ -99,51 +97,63 @@ class WhiteoutBot(commands.Bot):
 
             try:
                 await self.load_extension(cog)
-                logger.info(f"Cog cargado: {cog}")
+                logger.info(f"Cog loaded: {cog}")
 
             except Exception:
-                logger.exception(f"No se pudo cargar {cog}")
+                logger.exception(f"Could not load {cog}")
 
     async def on_ready(self):
 
         logger.info("--------------------------------------")
-        logger.info(f"Bot conectado como {self.user}")
+        logger.info(f"Bot connected as {self.user}")
         logger.info(f"ID: {self.user.id}")
-        logger.info(f"Servidores: {len(self.guilds)}")
+        logger.info(f"Servers: {len(self.guilds)}")
         logger.info("--------------------------------------")
 
-        # Prepara los datos y sincroniza los Slash Commands en CADA
-        # servidor donde está el bot, para que aparezcan al instante
-        # (sincronización global puede tardar hasta 1 hora).
+        # Clears any leftover GLOBAL commands from earlier versions
+        # of the bot (e.g. old Spanish-named commands registered
+        # before per-server syncing was introduced). Without this,
+        # old global commands can keep showing up alongside the new
+        # per-server ones, causing duplicates.
+        try:
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
+            logger.info("Cleared leftover global commands.")
+        except Exception:
+            logger.exception("Error clearing global commands")
+
+        # Prepares data and syncs Slash Commands in EVERY server the
+        # bot is in, so they appear instantly (a global sync can
+        # take up to an hour).
         for guild in self.guilds:
 
             manager = self.get_event_manager(guild.id)
-            logger.info(f"[{guild.name}] Eventos cargados: {len(manager.get_all_events())}")
+            logger.info(f"[{guild.name}] Events loaded: {len(manager.get_all_events())}")
 
             try:
                 self.tree.copy_global_to(guild=guild)
                 synced = await self.tree.sync(guild=guild)
-                logger.info(f"[{guild.name}] Slash Commands sincronizados: {len(synced)}")
+                logger.info(f"[{guild.name}] Slash Commands synced: {len(synced)}")
             except Exception:
-                logger.exception(f"[{guild.name}] Error sincronizando Slash Commands")
+                logger.exception(f"[{guild.name}] Error syncing Slash Commands")
 
-        logger.info("Whiteout Duty Manager iniciado correctamente.")
+        logger.info("Whiteout Duty Manager started successfully.")
 
     async def on_guild_join(self, guild: discord.Guild):
-        """Si el bot se une a un servidor nuevo mientras ya está
-        corriendo, prepara sus datos y sincroniza los comandos ahí
-        también, sin necesidad de reiniciar."""
+        # If the bot joins a new server while already running,
+        # prepares its data and syncs commands there too, without
+        # needing a restart.
 
-        logger.info(f"Bot añadido a un nuevo servidor: {guild.name} ({guild.id})")
+        logger.info(f"Bot added to a new server: {guild.name} ({guild.id})")
 
         self.get_event_manager(guild.id)
 
         try:
             self.tree.copy_global_to(guild=guild)
             synced = await self.tree.sync(guild=guild)
-            logger.info(f"[{guild.name}] Slash Commands sincronizados: {len(synced)}")
+            logger.info(f"[{guild.name}] Slash Commands synced: {len(synced)}")
         except Exception:
-            logger.exception(f"[{guild.name}] Error sincronizando Slash Commands")
+            logger.exception(f"[{guild.name}] Error syncing Slash Commands")
 
 
 # ======================================================
