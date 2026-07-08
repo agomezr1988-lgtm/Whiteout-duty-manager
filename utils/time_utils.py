@@ -2,14 +2,12 @@ from datetime import datetime, timezone, date, timedelta
 
 
 def now_utc() -> datetime:
-    """Returns the current date and time in UTC."""
+    # Returns the current date and time in UTC.
     return datetime.now(timezone.utc)
 
 
 def parse_time_utc(time_str: str) -> tuple[int, int]:
-    """
-    Converts an HH:MM string into (hour, minute).
-    """
+    # Converts an HH:MM string into (hour, minute).
 
     try:
         hour, minute = map(int, time_str.strip().split(":"))
@@ -29,11 +27,9 @@ def parse_time_utc(time_str: str) -> tuple[int, int]:
 
 
 def get_week_dates(reference: date = None) -> dict:
-    """
-    Returns a dict {weekday(0-6): date} for the current week
-    (Monday-Sunday), based on 'reference' (or today in UTC if
-    not given).
-    """
+    # Returns a dict {weekday(0-6): date} for the current week
+    # (Monday-Sunday), based on 'reference' (or today in UTC if
+    # not given).
     if reference is None:
         reference = now_utc().date()
 
@@ -43,13 +39,11 @@ def get_week_dates(reference: date = None) -> dict:
 
 
 def parse_date_ddmmyyyy(text: str) -> str:
-    """
-    Converts 'DD/MM' or 'DD/MM/YYYY' to ISO format 'YYYY-MM-DD'.
+    # Converts 'DD/MM' or 'DD/MM/YYYY' to ISO format 'YYYY-MM-DD'.
 
-    If no year is given, the current year is assumed; if that date
-    has already passed this year, next year is assumed instead
-    (so '05/01' in December points to next January, not the past).
-    """
+    # If no year is given, the current year is assumed; if that date
+    # has already passed this year, next year is assumed instead
+    # (so '05/01' in December points to next January, not the past).
 
     parts = text.strip().split("/")
 
