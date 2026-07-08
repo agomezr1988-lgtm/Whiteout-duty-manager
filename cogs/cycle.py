@@ -20,7 +20,7 @@ class CycleCog(commands.Cog):
     @commands.command(name="set_svs_date")
     @commands.has_permissions(manage_guild=True)
     async def set_svs_date(self, ctx, date_str: str):
-        """Sets the date of the next SvS Battle (must be a Saturday). Ex: !set_svs_date 12/07/2026"""
+        # Sets the date of the next SvS Battle (must be a Saturday). Ex: !set_svs_date 12/07/2026
 
         parts = date_str.strip().split("/")
         if len(parts) != 3:
@@ -48,7 +48,7 @@ class CycleCog(commands.Cog):
 
     @commands.command(name="cycle")
     async def cycle(self, ctx):
-        """Shows the calculated dates for the current monthly cycle."""
+        # Shows the calculated dates for the current monthly cycle.
 
         anchor = cycle_manager.get_svs_battle_date(ctx.guild.id)
 
