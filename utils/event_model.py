@@ -5,9 +5,7 @@ from datetime import datetime
 
 @dataclass
 class Event:
-    """
-    Event model.
-    """
+    # Event model.
 
     # Identification
     id: str
@@ -50,17 +48,15 @@ class Event:
 
 
 def event_to_dict(event: Event) -> dict:
-    """Converts an Event into a serializable dict."""
+    # Converts an Event into a serializable dict.
     return asdict(event)
 
 
 def event_from_dict(data: dict) -> Event:
-    """
-    Rebuilds an Event from a dict.
+    # Rebuilds an Event from a dict.
 
-    Automatically fills in new fields when loading events created
-    with older versions.
-    """
+    # Automatically fills in new fields when loading events created
+    # with older versions.
 
     defaults = {
         "daily": False,
