@@ -112,10 +112,165 @@ class AdminCog(commands.Cog):
 
     @commands.command(name="seed_events")
     async def seed_events(self, ctx):
-        """
-        Loads the events defined in data/seed_events.py.
-        Only ADDS the ones that don't exist yet (by id); never
-        overwrites one that's already created.
+        # Loads the events defined in data/seed_events.py.
+        # Only ADDS the ones that don't exist yet (by id); never
+        # overwrites one that's already created.
 
-        Note: this already happens automatically when the bot
-        starts up. This command is only useful if you've added new
+        # Note: this already happens automatically when the bot
+        # starts up. This command is only useful if you've added new
+        # events to seed_events.py and want to load them without
+        # restarting.
+
+        from utils.seed_loader import load_seed_events
+
+        created, already_existed = load_seed_events(self.bot.get_event_manager(ctx.guild.id))
+
+        summary = f"{len(created)} new events created."
+
+        if already_existed:
+            summary += f"\n{len(already_existed)} already existed and were left untouched."
+
+        await ctx.send(summary)
+
+    # --------------------------------------------------
+    # Set the event's signup tasks
+    # --------------------------------------------------
+
+    @commands.command(name="set_tasks")
+    async def set_tasks(self, ctx, event_id: str, *, tasks: str):
+        # Sets the internal tasks of an event, comma-separated.
+        # Example: !set_tasks foundry Messages & teams, Battle coordination
+        # To clear all tasks: !set_tasks foundry -
+
+        event = self.bot.get_event_manager(ctx.guild.id).get_event(event_id)
+
+        if event is None:
+            return await ctx.send("Event not found.")
+
+        if tasks.strip() == "-":
+            event.tasks = []
+        else:
+            event.tasks = [t.strip() for t in tasks.split(",") if t.strip()]
+
+        self.bot.get_event_manager(ctx.guild.id).save()
+
+        if event.tasks:
+            task_list = "\n".join(f"- {t}" for t in event.tasks)
+            await ctx.send(
+                f"Tasks for **{event.name}** updated:\n{task_list}"
+            )
+        else:
+            await ctx.send(
+                f"**{event.name}** no longer has any signup tasks defined."
+            )
+
+    # --------------------------------------------------
+    # Force re-sync of Slash Commands (fixes stale/renamed commands)
+    # --------------------------------------------------
+
+    @commands.command(name="sync_commands")
+    async def sync_commands(self, ctx):
+        # Clears leftover GLOBAL commands (e.g. old Spanish-named ones
+        # from earlier versions) and re-registers all Slash Commands
+        # for this server. Use this if an old or renamed command still
+        # shows up or errors out.
+
+        await ctx.send("Re-syncing commands, please wait...")
+
+        try:
+            # Clear any leftover global commands first
+            self.bot.tree.clear_commands(guild=None)
+            await self.bot.tree.sync()
+
+            # Then rebuild this server's commands from scratch
+            self.bot.tree.clear_commands(guild=ctx.guild)
+            await self.bot.tree.sync(guild=ctx.guild)
+
+            self.bot.tree.copy_global_to(guild=ctx.guild)
+            synced = await self.bot.tree.sync(guild=ctx.guild)
+
+            await ctx.send(
+                f"Done. Cleared old global commands and synced {len(synced)} commands "
+                "for this server. If Discord still shows an old command, fully restart "
+                "your Discord client (not just reload)."
+            )
+        except Exception as e:
+            await ctx.send(f"Sync failed: {e}")
+
+    # --------------------------------------------------
+    # Info
+    # --------------------------------------------------
+
+    @commands.command(name="event_info")
+    async def event_info(self, ctx, event_id: str):
+
+        event = self.bot.get_event_manager(ctx.guild.id).get_event(event_id)
+
+        if event is None:
+            return await ctx.send("Event not found.")
+
+        embed = discord.Embed(
+            title=event.name,
+            color=discord.Color.blurple()
+        )
+
+        embed.add_field(
+            name="ID",
+            value=event.id,
+            inline=True
+        )
+
+        embed.add_field(
+            name="Day",
+            value=day_label(event),
+            inline=True
+        )
+
+        embed.add_field(
+            name="Time",
+            value=f"{event.time} UTC",
+            inline=True
+        )
+
+        embed.add_field(
+            name="Status",
+            value="Active" if event.active else "Inactive",
+            inline=True
+        )
+
+        embed.add_field(
+            name="Duration",
+            value=str(event.duration) if event.duration else "Not set",
+            inline=True
+        )
+
+        embed.add_field(
+            name="Reminders",
+            value=", ".join(f"{m} min" for m in event.reminders),
+            inline=False
+        )
+
+        embed.add_field(
+            name="Signup tasks",
+            value=", ".join(event.tasks) if event.tasks else "This event has no tasks defined",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Responsible",
+            value=", ".join(event.assigned_roles) if event.assigned_roles else "None assigned",
+            inline=False
+        )
+
+        if event.notes:
+            embed.add_field(
+                name="Notes",
+                value=event.notes,
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
+
+
+async def setup(bot):
+    await bot.add_cog(AdminCog(bot))
