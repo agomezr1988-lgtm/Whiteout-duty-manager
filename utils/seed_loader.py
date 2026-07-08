@@ -4,13 +4,11 @@ logger = logging.getLogger(__name__)
 
 
 def load_seed_events(event_manager) -> tuple[list, list]:
-    """
-    Loads the events defined in data/seed_events.py into the given
-    event_manager. Only ADDS the ones that don't exist yet (by id);
-    never overwrites one that's already created.
+    # Loads the events defined in data/seed_events.py into the given
+    # event_manager. Only ADDS the ones that don't exist yet (by id);
+    # never overwrites one that's already created.
 
-    Returns (created, already_existed): lists of IDs.
-    """
+    # Returns (created, already_existed): lists of IDs.
 
     try:
         from data.seed_events import SEED_EVENTS
