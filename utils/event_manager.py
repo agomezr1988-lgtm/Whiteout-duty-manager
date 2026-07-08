@@ -14,7 +14,7 @@ class EventManager:
     # LOAD
     # -------------------------
     def load(self):
-        """Loads all events for this server from storage."""
+        # Loads all events for this server from storage.
         data = load_events(self.guild_id)
 
         self.events = {
@@ -23,7 +23,7 @@ class EventManager:
         }
 
     def save(self):
-        """Saves all events for this server."""
+        # Saves all events for this server.
         save_events(self.guild_id, {
             event_id: event_to_dict(event)
             for event_id, event in self.events.items()
