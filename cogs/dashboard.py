@@ -23,8 +23,8 @@ def day_label(event) -> str:
 
 
 def has_management_access(guild_id: int, user) -> bool:
-    """Grants access if the user can manage the server, or has the
-    R4 or R5 role configured for THIS server."""
+    # Grants access if the user can manage the server, or has the
+    # R4 or R5 role configured for THIS server.
 
     perms = getattr(user, "guild_permissions", None)
     if perms and perms.manage_guild:
