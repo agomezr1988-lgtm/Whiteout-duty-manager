@@ -17,7 +17,7 @@ DAYS = [
 
 
 def day_label(event) -> str:
-    """Returns the day name, or a special label if it has none."""
+    # Returns the day name, or a special label if it has none.
     if event.daily:
         return "Daily"
     if event.weekday is None:
