@@ -175,8 +175,8 @@ class SchedulerCog(commands.Cog):
         await self.notify_signups(guild, event, message, availability_manager, date_iso)
 
     async def notify_signups(self, guild, event, message, availability_manager, date_iso):
-        """Sends a direct message to each user signed up for this
-        event (recurring, or for today's date)."""
+        # Sends a direct message to each user signed up for this
+        # event (recurring, or for today's date).
 
         signups = availability_manager.get_for_event(event.id, date=date_iso)
 
