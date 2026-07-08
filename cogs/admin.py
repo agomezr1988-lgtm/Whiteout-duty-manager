@@ -171,28 +171,33 @@ class AdminCog(commands.Cog):
     @commands.command(name="sync_commands")
     async def sync_commands(self, ctx):
         # Clears leftover GLOBAL commands (e.g. old Spanish-named ones
-        # from earlier versions) and re-registers all Slash Commands
-        # for this server. Use this if an old or renamed command still
-        # shows up or errors out.
+        # from earlier versions), reloads all cogs so their commands
+        # register again, and re-syncs everything for this server.
+        # Use this if an old or renamed command still shows up or
+        # errors out, or if commands disappear after a cleanup.
 
         await ctx.send("Re-syncing commands, please wait...")
 
         try:
-            # Clear any leftover global commands first
+            # Step 1: wipe any leftover global commands on Discord's side
             self.bot.tree.clear_commands(guild=None)
             await self.bot.tree.sync()
 
-            # Then rebuild this server's commands from scratch
-            self.bot.tree.clear_commands(guild=ctx.guild)
-            await self.bot.tree.sync(guild=ctx.guild)
+            # Step 2: reload every cog so their commands register again
+            # in the bot's local command tree (clearing above empties it)
+            for extension in list(self.bot.extensions.keys()):
+                await self.bot.reload_extension(extension)
 
+            # Step 3: rebuild this server's commands from the
+            # freshly-repopulated tree
+            self.bot.tree.clear_commands(guild=ctx.guild)
             self.bot.tree.copy_global_to(guild=ctx.guild)
             synced = await self.bot.tree.sync(guild=ctx.guild)
 
             await ctx.send(
-                f"Done. Cleared old global commands and synced {len(synced)} commands "
-                "for this server. If Discord still shows an old command, fully restart "
-                "your Discord client (not just reload)."
+                f"Done. Cleared old global commands, reloaded all cogs, and synced "
+                f"{len(synced)} commands for this server. If Discord still shows an "
+                "old command, fully restart your Discord client (not just reload)."
             )
         except Exception as e:
             await ctx.send(f"Sync failed: {e}")
