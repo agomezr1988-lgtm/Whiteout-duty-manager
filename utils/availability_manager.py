@@ -63,8 +63,8 @@ class AvailabilityManager:
         date: Optional[str] = None,
         task: Optional[str] = None,
     ):
-        """Signs a user up. If already signed up (same event, user,
-        date and task), updates the existing entry."""
+        # Signs a user up. If already signed up (same event, user,
+        # date and task), updates the existing entry.
 
         self.entries = [
             a for a in self.entries
@@ -96,7 +96,7 @@ class AvailabilityManager:
         date: Optional[str] = None,
         task: Optional[str] = None,
     ) -> bool:
-        """Removes a user. Returns True if there was something to remove."""
+        # Removes a user. Returns True if there was something to remove.
 
         before = len(self.entries)
 
@@ -125,8 +125,8 @@ class AvailabilityManager:
         event_id: str,
         date: Optional[str] = None,
     ) -> List[Availability]:
-        """Returns the recurring availability of an event, plus that of
-        a specific date if given (includes all tasks)."""
+        # Returns the recurring availability of an event, plus that of
+        # a specific date if given (includes all tasks).
 
         result = [
             a for a in self.entries
@@ -146,9 +146,9 @@ class AvailabilityManager:
         self.save()
 
     def get_dated_for_event(self, event_id: str) -> List[Availability]:
-        """Returns ALL signups with a specific date for an event (any
-        date, not just one in particular). Used to list variable-date
-        events in the calendar."""
+        # Returns ALL signups with a specific date for an event (any
+        # date, not just one in particular). Used to list variable-date
+        # events in the calendar.
 
         return [
             a for a in self.entries
@@ -156,10 +156,10 @@ class AvailabilityManager:
         ]
 
     def has_any_signups(self, event_id: str) -> bool:
-        """True if anyone is signed up for this event, regardless of
-        date (recurring or specific)."""
+        # True if anyone is signed up for this event, regardless of
+        # date (recurring or specific).
         return any(a.event_id == event_id for a in self.entries)
 
     def count_signups(self, event_id: str) -> int:
-        """Total number of signups (people x dates) for an event."""
+        # Total number of signups (people x dates) for an event.
         return sum(1 for a in self.entries if a.event_id == event_id)
