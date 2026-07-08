@@ -1,17 +1,15 @@
-"""
-Initial (seed) data for the clan's events.
+# Initial (seed) data for the clan's events.
 
-This file is just source TEXT, easy to read and edit by hand.
-The bot loads it AUTOMATICALLY on startup (no command needed).
-Changes made from Discord (!create_event, !set_tasks, etc.) are
-still saved to data/events.json, the real database; this file is
-only used to fill in whatever is missing.
+# This file is just source TEXT, easy to read and edit by hand.
+# The bot loads it AUTOMATICALLY on startup (no command needed).
+# Changes made from Discord (!create_event, !set_tasks, etc.) are
+# still saved to data/events.json, the real database; this file is
+# only used to fill in whatever is missing.
 
-Editing this and restarting the bot is safe: it only ADDS events
-whose id does not exist yet, never overwrites one already created
-(so you never lose changes made from Discord). You can also force
-a reload without restarting using !seed_events.
-"""
+# Editing this and restarting the bot is safe: it only ADDS events
+# whose id does not exist yet, never overwrites one already created
+# (so you never lose changes made from Discord). You can also force
+# a reload without restarting using !seed_events.
 
 # weekday: 0=Monday ... 6=Sunday, or None if the date is variable or daily
 # daily: True = the event repeats every day (ignores weekday)
