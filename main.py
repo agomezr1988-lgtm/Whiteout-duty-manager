@@ -110,18 +110,6 @@ class WhiteoutBot(commands.Bot):
         logger.info(f"Servers: {len(self.guilds)}")
         logger.info("--------------------------------------")
 
-        # Clears any leftover GLOBAL commands from earlier versions
-        # of the bot (e.g. old Spanish-named commands registered
-        # before per-server syncing was introduced). Without this,
-        # old global commands can keep showing up alongside the new
-        # per-server ones, causing duplicates.
-        try:
-            self.tree.clear_commands(guild=None)
-            await self.tree.sync()
-            logger.info("Cleared leftover global commands.")
-        except Exception:
-            logger.exception("Error clearing global commands")
-
         # Prepares data and syncs Slash Commands in EVERY server the
         # bot is in, so they appear instantly (a global sync can
         # take up to an hour).
