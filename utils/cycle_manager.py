@@ -35,12 +35,10 @@ def get_svs_battle_date(guild_id: int) -> Optional[date]:
 
 
 def compute_cycle(anchor: date) -> dict:
-    """
-    Calculates all the monthly cycle dates based on the SvS Battle
-    date (which must fall on a Saturday).
+    # Calculates all the monthly cycle dates based on the SvS Battle
+    # date (which must fall on a Saturday).
 
-    Returns a dict {event_name: [dates...]}.
-    """
+    # Returns a dict {event_name: [dates...]}.
 
     monday_w0 = anchor - timedelta(days=anchor.weekday())  # Monday of SvS Battle's week
     monday_w1 = monday_w0 + timedelta(days=7)              # Following week
